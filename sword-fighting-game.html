@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blade & Brawl: Best of 5</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Import Inter font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        
+        /* Basic body styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #1a202c; /* Tailwind gray-900 equivalent */
+            color: #e2e8f0; /* Tailwind gray-200 equivalent */
+            margin: 0;
+            overflow: hidden; /* Prevent scrolling */
+        }
+        
+        /* Main game container styling */
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.5rem;
+            background-color: #2d3748; /* Tailwind gray-700 equivalent */
+            border-radius: 1rem; /* rounded-xl */
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+            max-width: 90vw; /* Responsive width */
+            max-height: 90vh; /* Responsive height */
+            box-sizing: border-box;
+        }
+
+        /* Canvas styling */
+        canvas {
+            background-color: #2d3748; /* Tailwind gray-700 equivalent */
+            border-radius: 1rem; /* rounded-xl */
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+            display: block; /* Remove extra space below canvas */
+        }
+
+        /* Controls info box styling */
+        .controls-info {
+            background-color: #4a5568; /* Tailwind gray-600 equivalent */
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            font-size: 0.9rem;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        /* Modal overlay styling */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* Dark overlay */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Ensure modal is on top */
+        }
+
+        /* Modal content box styling */
+        .modal-content {
+            background-color: #2d3748; /* Tailwind gray-700 */
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+            max-width: 80vw; /* Responsive width */
+        }
+
+        /* Button styling */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out; /* Smooth transitions */
+            background-color: #63b3ed; /* Tailwind blue-400 */
+            color: #1a202c; /* Dark text on blue */
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            background-color: #4299e1; /* Tailwind blue-500 on hover */
+            transform: translateY(-2px); /* Slight lift effect */
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Red button variant */
+        .btn-red {
+            background-color: #fc8181; /* Tailwind red-400 */
+        }
+        .btn-red:hover {
+            background-color: #e53e3e; /* Tailwind red-500 on hover */
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="text-3xl font-bold text-blue-300">Blade & Brawl</h1>
+        <div id="gameInfo" class="flex justify-between w-full text-lg font-semibold px-4">
+            <span id="player1Score" class="text-green-400">Player 1: 0</span>
+            <span id="roundNumber" class="text-yellow-300">Round 1</span>
+            <span id="player2Score" class="text-red-400">Player 2: 0</span>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+        <div id="controlsInfo" class="controls-info">
+            <p><strong>Player Controls:</strong></p>
+            <p><strong>WASD</strong> to Move</p>
+            <p><strong>Left Mouse Button</strong> for Sword Attack</p>
+            <p><strong>Right Mouse Button</strong> to Block</p>
+            <p><strong>Mobile:</strong> Drag to Move, Tap for Attack, Two Fingers for Block</p>
+        </div>
+        <div id="connectionStatus" class="text-sm text-gray-400 mt-2">Connecting...</div>
+        <div id="userIdDisplay" class="text-sm text-gray-400">Your User ID: Loading...</div>
+    </div>
+
+    <!-- Modals for game states (hidden by default) -->
+    
+    <!-- Lobby Modal -->
+    <div id="lobbyModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">Lobby</h2>
+            <p class="mb-4">Waiting for another player...</p>
+            <p class="text-sm mb-4">Your Room ID: <span id="currentRoomId" class="font-mono">Loading...</span></p>
+            <div class="flex flex-col gap-2">
+                <button id="createRoomBtn" class="btn">Create New Game</button>
+                <input type="text" id="joinRoomInput" placeholder="Enter Room ID to Join" class="p-2 rounded-md bg-gray-600 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button id="joinRoomBtn" class="btn">Join Game</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameOverModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="gameOverMessage" class="text-2xl font-bold mb-4"></h2>
+            <button id="playAgainBtn" class="btn">Play Again</button>
+        </div>
+    </div>
+
+    <!-- Round Over Modal -->
+    <div id="roundOverModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="roundOverMessage" class="text-2xl font-bold mb-4"></h2>
+            <button id="nextRoundBtn" class="btn">Next Round</button>
+        </div>
+    </div>
+
+    <!-- General Game Message Modal -->
+    <div id="gameMessageModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="gameMessageText" class="text-2xl font-bold mb-4"></h2>
+            <button id="gameMessageCloseBtn" class="btn hidden">OK</button>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase imports - MANDATORY at the top of script tags when using type="module"
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, query, where, addDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables for Firebase config and app ID, provided by the Canvas environment
+ const firebaseConfig = {
+  apiKey: "AIzaSyAViW3Z4wD7KEXZL5Hp95-fHmKw5Lgb2Lc",
+  authDomain: "brawl-game-67b0b.firebaseapp.com",
+  projectId: "brawl-game-67b0b",
+  storageBucket: "brawl-game-67b0b.firebasestorage.app",
+  messagingSenderId: "989739157377",
+  appId: "1:989739157377:web:75c9e8debe1311b1444a80",
+  measurementId: "G-WMFLVF9QPE"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
+        // Firebase instances
+        let app;
+        let db;
+        let auth;
+        let currentUser;
+        let userId; // Stores the authenticated user's ID or a random ID if anonymous
+        let isAuthReady = false; // Flag to indicate Firebase auth is ready
+
+        // DOM Elements
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const player1ScoreSpan = document.getElementById('player1Score');
+        const player2ScoreSpan = document.getElementById('player2Score');
+        const roundNumberSpan = document.getElementById('roundNumber');
+        const connectionStatusSpan = document.getElementById('connectionStatus');
+        const userIdDisplay = document.getElementById('userIdDisplay');
+
+        // Modal Elements
+        const lobbyModal = document.getElementById('lobbyModal');
+        const createRoomBtn = document.getElementById('createRoomBtn');
+        const joinRoomInput = document.getElementById('joinRoomInput');
+        const joinRoomBtn = document.getElementById('joinRoomBtn');
+        const currentRoomIdSpan = document.getElementById('currentRoomId');
+
+        const gameOverModal = document.getElementById('gameOverModal');
+        const gameOverMessage = document.getElementById('gameOverMessage');
+        const playAgainBtn = document.getElementById('playAgainBtn');
+
+        const roundOverModal = document.getElementById('roundOverModal');
+        const roundOverMessage = document.getElementById('roundOverMessage');
+        const nextRoundBtn = document.getElementById('nextRoundBtn');
+
+        const gameMessageModal = document.getElementById('gameMessageModal');
+        const gameMessageText = document.getElementById('gameMessageText');
+        const gameMessageCloseBtn = document.getElementById('gameMessageCloseBtn');
+
+        // Game State Variables
+        let gameRoomId = null; // ID of the current game room
+        let localPlayer = null; // Represents the player controlled by THIS client
+        let remotePlayer = null; // Represents the opponent
+        let players = {}; // Map of player IDs to player objects for easy access
+        let gameState = {
+            round: 1,
+            player1Score: 0,
+            player2Score: 0,
+            status: 'waiting', // Possible statuses: 'waiting', 'playing', 'round_over', 'game_over'
+            player1Id: null, // User ID of Player 1
+            player2Id: null, // User ID of Player 2
+            roundWinner: null // ID of the player who won the current round
+        };
+
+        // Game Constants
+        const PLAYER_SIZE = 40;
+        const PLAYER_SPEED = 3;
+        const SWORD_LENGTH = 50;
+        const SWORD_WIDTH = 10;
+        const SWORD_ATTACK_DURATION = 200; // ms - how long the attack animation lasts
+        const ATTACK_COOLDOWN = 300; // ms - minimum time between attacks
+        const BLOCK_COOLDOWN = 200; // ms - minimum time between block activations/deactivations
+        const MAX_HEALTH = 100;
+        const ATTACK_DAMAGE = 20;
+
+        // Input Tracking
+        let keysPressed = {}; // Stores currently pressed keyboard keys
+        let mouse = { x: 0, y: 0, leftDown: false, rightDown: false }; // Mouse position and button states
+        let animationFrameId; // Stores the ID returned by requestAnimationFrame
+
+        // Player Class Definition
+        class Player {
+            constructor(id, x, y, color, isLocal = false) {
+                this.id = id;
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.health = MAX_HEALTH;
+                this.score = 0;
+                this.swordAngle = 0; // Angle of the sword relative to the player's center
+                this.attacking = false; // Is player currently attacking?
+                this.blocking = false; // Is player currently blocking?
+                this.lastAttack = 0; // Timestamp of the last attack
+                this.lastBlock = 0; // Timestamp of the last block
+                this.isLocal = isLocal; // True if this player is controlled by the current client
+            }
+
+            /**
+             * Draws the player and their sword/block on the canvas.
+             */
+            draw() {
+                // Draw player body (a circle)
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, PLAYER_SIZE / 2, 0, Math.PI * 2);
+                ctx.fill();
+                // Highlight the local player with a gold border
+                ctx.strokeStyle = this.isLocal ? 'gold' : 'white';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Draw sword if attacking
+                if (this.attacking) {
+                    ctx.save(); // Save current canvas state
+                    ctx.translate(this.x, this.y); // Move origin to player's center
+                    ctx.rotate(this.swordAngle); // Rotate canvas to sword's angle
+                    ctx.fillStyle = '#a0a0a0'; // Sword color
+                    ctx.fillRect(0, -SWORD_WIDTH / 2, SWORD_LENGTH, SWORD_WIDTH); // Draw sword as a rectangle
+                    ctx.restore(); // Restore previous canvas state
+                } 
+                // Draw block if blocking
+                else if (this.blocking) {
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.rotate(this.swordAngle); // Block direction based on mouse
+                    ctx.fillStyle = '#6a6a6a'; // Shield/block color
+                    ctx.fillRect(0, -SWORD_WIDTH / 2, SWORD_LENGTH / 2, SWORD_WIDTH * 1.5); // Thicker, shorter block
+                    ctx.restore();
+                }
+
+                // Draw health bar above the player
+                const healthBarWidth = PLAYER_SIZE * 1.5;
+                const healthBarHeight = 5;
+                const healthX = this.x - healthBarWidth / 2;
+                const healthY = this.y - PLAYER_SIZE / 2 - healthBarHeight - 5;
+                ctx.fillStyle = 'gray'; // Background of health bar
+                ctx.fillRect(healthX, healthY, healthBarWidth, healthBarHeight);
+                ctx.fillStyle = 'green'; // Current health
+                ctx.fillRect(healthX, healthY, (this.health / MAX_HEALTH) * healthBarWidth, healthBarHeight);
+            }
+
+            /**
+             * Updates the local player's position based on keyboard input and sword angle based on mouse.
+             * Remote players are updated via Firestore.
+             */
+            update() {
+                if (!this.isLocal) return; // Only local player updates its own position locally
+
+                let moveX = 0;
+                let moveY = 0;
+                // Determine movement direction from WASD keys
+                if (keysPressed['w']) moveY = -1;
+                if (keysPressed['s']) moveY = 1;
+                if (keysPressed['a']) moveX = -1;
+                if (keysPressed['d']) moveX = 1;
+
+                // Apply movement if any key is pressed
+                if (moveX !== 0 || moveY !== 0) {
+                    const angle = Math.atan2(moveY, moveX); // Calculate angle of movement
+                    this.x += Math.cos(angle) * PLAYER_SPEED;
+                    this.y += Math.sin(angle) * PLAYER_SPEED;
+
+                    // Clamp player position to stay within canvas bounds
+                    this.x = Math.max(PLAYER_SIZE / 2, Math.min(canvas.width - PLAYER_SIZE / 2, this.x));
+                    this.y = Math.max(PLAYER_SIZE / 2, Math.min(canvas.height - PLAYER_SIZE / 2, this.y));
+                }
+
+                // Update sword orientation based on mouse position relative to player
+                const dx = mouse.x - this.x;
+                const dy = mouse.y - this.y;
+                this.swordAngle = Math.atan2(dy, dx);
+            }
+
+            /**
+             * Returns the current hitbox for the player's sword (for collision detection).
+             * @returns {object|null} An object with x, y, and radius properties, or null if not attacking.
+             */
+            getSwordHitbox() {
+                if (!this.attacking) return null;
+
+                // Calculate the tip of the sword
+                const tipX = this.x + Math.cos(this.swordAngle) * SWORD_LENGTH;
+                const tipY = this.y + Math.sin(this.swordAngle) * SWORD_LENGTH;
+                
+                // Return a simple circle hitbox for the sword tip
+                return { x: tipX, y: tipY, radius: SWORD_WIDTH / 2 };
+            }
+
+            /**
+             * Returns the current hitbox for the player's block.
+             * @returns {object|null} An object with x, y, and radius properties, or null if not blocking.
+             */
+            getBlockHitbox() {
+                if (!this.blocking) return null;
+
+                // Calculate the center of the block area relative to the player
+                const blockX = this.x + Math.cos(this.swordAngle) * (SWORD_LENGTH / 4); 
+                const blockY = this.y + Math.sin(this.swordAngle) * (SWORD_LENGTH / 4);
+                
+                // Return a larger circular area to represent the blocking zone
+                return { x: blockX, y: blockY, radius: PLAYER_SIZE / 2 + 10 }; 
+            }
+
+            /**
+             * Returns the player's hurtbox (the area that can take damage).
+             * @returns {object} An object with x, y, and radius properties.
+             */
+            getHurtbox() {
+                return { x: this.x, y: this.y, radius: PLAYER_SIZE / 2 };
+            }
+        }
+
+        /**
+         * Displays a modal message to the user.
+         * @param {string} text - The message to display.
+         * @param {boolean} showCloseButton - Whether to show an "OK" button to close the modal.
+         */
+        function showMessage(text, showCloseButton = false) {
+            gameMessageText.textContent = text;
+            gameMessageCloseBtn.classList.toggle('hidden', !showCloseButton);
+            gameMessageModal.classList.remove('hidden');
+        }
+
+        /**
+         * Hides the general message modal.
+         */
+        function hideMessage() {
+            gameMessageModal.classList.add('hidden');
+        }
+
+        // Event listener for the general message modal's close button
+        gameMessageCloseBtn.addEventListener('click', hideMessage);
+
+        /**
+         * Initializes the game canvas and sets up event listeners for input and window resizing.
+         */
+        function initGame() {
+            resizeCanvas(); // Set initial canvas size
+            window.addEventListener('resize', resizeCanvas); // Adjust canvas size on window resize
+
+            // Keyboard input listeners
+            document.addEventListener('keydown', (e) => {
+                keysPressed[e.key.toLowerCase()] = true;
+            });
+            document.addEventListener('keyup', (e) => {
+                keysPressed[e.key.toLowerCase()] = false;
+            });
+
+            // Mouse input listeners
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                mouse.x = e.clientX - rect.left;
+                mouse.y = e.clientY - rect.top;
+            });
+            canvas.addEventListener('mousedown', (e) => {
+                if (e.button === 0) mouse.leftDown = true; // Left click for attack
+                if (e.button === 2) mouse.rightDown = true; // Right click for block
+                e.preventDefault(); // Prevent default browser behavior (e.g., text selection)
+            });
+            canvas.addEventListener('mouseup', (e) => {
+                if (e.button === 0) mouse.leftDown = false;
+                if (e.button === 2) mouse.rightDown = false;
+            });
+            canvas.addEventListener('contextmenu', (e) => e.preventDefault()); // Prevent right-click context menu
+
+            // Touch event listeners for mobile devices
+            canvas.addEventListener('touchstart', handleTouchStart, false);
+            canvas.addEventListener('touchend', handleTouchEnd, false);
+            canvas.addEventListener('touchmove', handleTouchMove, false);
+        }
+
+        // Touch input tracking variables
+        let touchStart = { x: 0, y: 0 }; // Initial touch position
+        let touchCurrent = { x: 0, y: 0 }; // Current touch position
+        let touchActive = false; // Is a touch active?
+        let touchMoveThreshold = 20; // Pixels to distinguish tap from drag
+        let lastTapTime = 0; // To debounce taps for attack
+
+        /**
+         * Handles touch start events for mobile input.
+         * Simulates mouse actions for movement and attack/block.
+         * @param {TouchEvent} e - The touch event object.
+         */
+        function handleTouchStart(e) {
+            e.preventDefault(); // Prevent default browser actions like scrolling or zooming
+
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0]; // Get the first touch point
+
+            // Store initial touch position
+            touchStart.x = touch.clientX - rect.left;
+            touchStart.y = touch.clientY - rect.top;
+            touchCurrent.x = touchStart.x;
+            touchCurrent.y = touchStart.y;
+
+            touchActive = true;
+            mouse.x = touchStart.x; // Use touch position for sword aim
+            mouse.y = touchStart.y;
+
+            if (e.touches.length === 1) {
+                // If single touch, prepare for potential attack (tap) or movement (drag)
+                lastTapTime = Date.now();
+                // Set mouse.leftDown to true for immediate potential attack on tap
+                // It will be reset in handleTouchEnd if it was a drag
+                mouse.leftDown = true;
+            } else if (e.touches.length === 2) {
+                // Two fingers for block
+                mouse.rightDown = true;
+            }
+        }
+
+        /**
+         * Handles touch move events for mobile input.
+         * Updates movement based on drag direction.
+         * @param {TouchEvent} e - The touch event object.
+         */
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (!touchActive) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            touchCurrent.x = touch.clientX - rect.left;
+            touchCurrent.y = touch.clientY - rect.top;
+
+            const dx = touchCurrent.x - touchStart.x;
+            const dy = touchCurrent.y - touchStart.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > touchMoveThreshold) { // If drag is significant, it's movement
+                // Normalize direction and set WASD keys
+                const angle = Math.atan2(dy, dx);
+                keysPressed = {}; // Clear previous keys
+                if (Math.abs(dx) > Math.abs(dy)) { // Horizontal movement is dominant
+                    if (dx < 0) keysPressed['a'] = true;
+                    else keysPressed['d'] = true;
+                } else { // Vertical movement is dominant
+                    if (dy < 0) keysPressed['w'] = true;
+                    else keysPressed['s'] = true;
+                }
+                mouse.leftDown = false; // If dragging, it's not a tap attack
+            } else {
+                // If not significant drag, no movement keys are pressed
+                keysPressed = {};
+            }
+
+            // Update sword aim for mouse
+            mouse.x = touchCurrent.x;
+            mouse.y = touchCurrent.y;
+        }
+
+        /**
+         * Handles touch end events for mobile input.
+         * Resets input states.
+         * @param {TouchEvent} e - The touch event object.
+         */
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            touchActive = false;
+            keysPressed = {}; // Stop movement when touch ends
+
+            if (mouse.leftDown && (Date.now() - lastTapTime < 200)) { // If it was a quick tap
+                // The attack will be triggered in the game loop based on mouse.leftDown
+                // We just need to ensure mouse.leftDown is true for one frame.
+                // It will be set to false by the game loop after processing.
+            } else {
+                mouse.leftDown = false; // No attack if it was a drag
+            }
+            mouse.rightDown = false; // Release block
+        }
+
+        /**
+         * Resizes the canvas to fit responsively within the window.
+         */
+        function resizeCanvas() {
+            // Set canvas dimensions based on a percentage of the parent container or fixed max values
+            const container = canvas.parentElement;
+            canvas.width = Math.min(window.innerWidth * 0.8, 800); // Max width 800px
+            canvas.height = Math.min(window.innerHeight * 0.7, 500); // Max height 500px
+        }
+
+        // Game Loop Variables
+        let lastTime = 0; // Timestamp of the previous frame
+
+        /**
+         * The main game loop function. Updates game state and redraws elements.
+         * @param {DOMHighResTimeStamp} currentTime - The current time provided by requestAnimationFrame.
+         */
+        function gameLoop(currentTime) {
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            update(deltaTime); // Update game logic
+            draw(); // Redraw game elements
+
+            animationFrameId = requestAnimationFrame(gameLoop); // Request next frame
+        }
+
+        /**
+         * Updates the game state based on input and game logic.
+         * This function is called every frame.
+         * @param {number} deltaTime - The time elapsed since the last frame (in milliseconds).
+         */
+        function update() {
+            // Only update game if both players are ready and game status is 'playing'
+            if (gameState.status !== 'playing' || !localPlayer || !remotePlayer) return;
+
+            localPlayer.update(); // Update local player's position and sword orientation
+
+            const now = Date.now();
+
+            // Handle local player attacks (left mouse button or tap)
+            if (mouse.leftDown && !localPlayer.attacking && (now - localPlayer.lastAttack > ATTACK_COOLDOWN)) {
+                localPlayer.attacking = true;
+                localPlayer.blocking = false; // Cannot block while attacking
+                localPlayer.lastAttack = now;
+                // Schedule end of attack animation
+                setTimeout(() => {
+                    localPlayer.attacking = false;
+                    // Ensure the state is updated in Firestore even if no hit occurred
+                    updatePlayerStateInFirestore(localPlayer);
+                }, SWORD_ATTACK_DURATION);
+                // Immediately send attack state update to Firestore
+                updatePlayerStateInFirestore(localPlayer);
+            } 
+            // Handle local player blocking (right mouse button or two-finger touch)
+            else if (mouse.rightDown && (now - localPlayer.lastBlock > BLOCK_COOLDOWN)) {
+                localPlayer.blocking = true;
+                localPlayer.attacking = false; // Cannot attack while blocking
+                localPlayer.lastBlock = now;
+                updatePlayerStateInFirestore(localPlayer);
+            } 
+            // If right mouse button/two fingers are released, stop blocking
+            else if (!mouse.rightDown && localPlayer.blocking) {
+                localPlayer.blocking = false;
+                updatePlayerStateInFirestore(localPlayer);
+            }
+
+            // After processing mouse clicks, reset them if they were for a single frame (like a tap)
+            if (mouse.leftDown && !touchActive) mouse.leftDown = false; // Reset if not a continuous touch
+            if (mouse.rightDown && !touchActive && e.touches.length < 2) mouse.rightDown = false; // Reset if not continuous touch or two fingers
+
+            // Check for collision if local player is currently attacking
+            if (localPlayer.attacking) {
+                const swordHitbox = localPlayer.getSwordHitbox();
+                const remoteHurtbox = remotePlayer.getHurtbox();
+                const remoteBlockbox = remotePlayer.getBlockHitbox(); 
+
+                // Calculate distance between sword tip and remote player's center
+                const distance = Math.sqrt(
+                    Math.pow(swordHitbox.x - remoteHurtbox.x, 2) +
+                    Math.pow(swordHitbox.y - remoteHurtbox.y, 2)
+                );
+
+                // If sword tip hits the remote player's hurtbox
+                if (distance < remoteHurtbox.radius) {
+                    let damage = ATTACK_DAMAGE;
+                    let hitMessage = `${localPlayer.id.substring(0, 8)}... hit ${remotePlayer.id.substring(0, 8)}...!`;
+
+                    // Check if remote player is blocking and if the sword hits the block area
+                    if (remotePlayer.blocking) {
+                        const blockDistance = Math.sqrt(
+                            Math.pow(swordHitbox.x - remoteBlockbox.x, 2) +
+                            Math.pow(swordHitbox.y - remoteBlockbox.y, 2)
+                        );
+                        if (blockDistance < remoteBlockbox.radius) {
+                            damage = 0; // Blocked! No damage
+                            hitMessage = `${remotePlayer.id.substring(0, 8)}... blocked ${localPlayer.id.substring(0, 8)}...'s attack!`;
+                            showMessage(hitMessage, false); // Show temporary message
+                        }
+                    }
+
+                    if (damage > 0) {
+                        remotePlayer.health -= damage; // Apply damage to remote player
+                        showMessage(hitMessage, false); // Show temporary message
+                        if (remotePlayer.health <= 0) {
+                            remotePlayer.health = 0;
+                            // Local player wins the round
+                            endRound(localPlayer.id);
+                        }
+                        // Update remote player's health in Firestore (this client is the "attacker")
+                        // This will trigger a snapshot update for the remote client
+                        updatePlayerStateInFirestore(remotePlayer);
+                    }
+                    // Stop attacking after a successful hit or block to prevent continuous hits
+                    localPlayer.attacking = false; 
+                    mouse.leftDown = false; // Reset mouse state
+                }
+            }
+        }
+
+        /**
+         * Clears the canvas and draws all game elements.
+         */
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear entire canvas
+
+            // Draw players if they exist
+            if (players[gameState.player1Id]) {
+                players[gameState.player1Id].draw();
+            }
+            if (players[gameState.player2Id]) {
+                players[gameState.player2Id].draw();
+            }
+        }
+
+        /**
+         * Ends the current round, updates scores, and checks for game over.
+         * @param {string} winnerId - The ID of the player who won the round.
+         */
+        function endRound(winnerId) {
+            if (gameState.status !== 'playing') return; // Prevent multiple calls if round already ended
+
+            cancelAnimationFrame(animationFrameId); // Stop the game loop
+            animationFrameId = undefined; // Reset the frame ID
+
+            gameState.status = 'round_over';
+            gameState.roundWinner = winnerId; // Store the winner's ID
+
+            // Increment the winner's score
+            if (winnerId === gameState.player1Id) {
+                gameState.player1Score++;
+            } else if (winnerId === gameState.player2Id) {
+                gameState.player2Score++;
+            }
+
+            // Update UI scores
+            player1ScoreSpan.textContent = `P1: ${gameState.player1Score}`;
+            player2ScoreSpan.textContent = `P2: ${gameState.player2Score}`;
+
+            // Update game state in Firestore so all clients are aware of round end
+            updateGameStateInFirestore();
+
+            // Check if either player has reached 3 wins (best of 5)
+            if (gameState.player1Score >= 3 || gameState.player2Score >= 3) {
+                gameState.status = 'game_over';
+                let winningPlayerId = gameState.player1Score >= 3 ? gameState.player1Id : gameState.player2Id;
+                gameOverMessage.textContent = `${players[winningPlayerId].id.substring(0, 8)}... Wins the Match!`;
+                gameOverModal.classList.remove('hidden'); // Show game over modal
+            } else {
+                roundOverMessage.textContent = `${players[winnerId].id.substring(0, 8)}... Wins Round ${gameState.round}!`;
+                roundOverModal.classList.remove('hidden'); // Show round over modal
+            }
+        }
+
+        /**
+         * Starts the next round of the game. Resets player health and positions.
+         */
+        function startNextRound() {
+            hideModal(roundOverModal); // Hide round over modal
+
+            if (gameState.status === 'round_over') {
+                gameState.round++; // Increment round number
+                gameState.status = 'playing'; // Set game status back to playing
+                gameState.roundWinner = null; // Clear previous round winner
+
+                // Reset player health
+                localPlayer.health = MAX_HEALTH;
+                remotePlayer.health = MAX_HEALTH;
+
+                // Assign starting positions for the new round
+                const p1StartX = canvas.width * 0.25;
+                const p2StartX = canvas.width * 0.75;
+                const startY = canvas.height / 2;
+
+                // Ensure local player always starts on their designated side based on their ID in the room
+                if (localPlayer.id === gameState.player1Id) {
+                    localPlayer.x = p1StartX;
+                    localPlayer.y = startY;
+                    remotePlayer.x = p2StartX;
+                    remotePlayer.y = startY;
+                } else { // localPlayer.id === gameState.player2Id
+                    localPlayer.x = p2StartX;
+                    localPlayer.y = startY;
+                    remotePlayer.x = p1StartX;
+                    remotePlayer.y = startY;
+                }
+                
+                roundNumberSpan.textContent = `Round ${gameState.round}`; // Update UI round number
+
+                // Update Firestore to signal new round start and player positions
+                updateGameStateInFirestore();
+                updatePlayerStateInFirestore(localPlayer); // Update local player's new position in Firestore
+
+                // Restart the game loop
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        /**
+         * Resets the entire game state, typically after a match ends.
+         */
+        function resetGame() {
+            hideModal(gameOverModal); // Hide game over modal
+            // Reset main game state variables
+            gameState = {
+                round: 1,
+                player1Score: 0,
+                player2Score: 0,
+                status: 'waiting',
+                player1Id: null,
+                player2Id: null,
+                roundWinner: null
+            };
+            // Reset UI scores and round number
+            player1ScoreSpan.textContent = `P1: 0`;
+            player2ScoreSpan.textContent = `P2: 0`;
+            roundNumberSpan.textContent = `Round 1`;
+
+            // Reset player objects locally for their health/position
+            if (localPlayer) localPlayer.health = MAX_HEALTH;
+            if (remotePlayer) remotePlayer.health = MAX_HEALTH;
+            
+            // Go back to the lobby screen
+            showLobby();
+        }
+
+        // Event listeners for game action buttons
+        nextRoundBtn.addEventListener('click', startNextRound);
+        playAgainBtn.addEventListener('click', resetGame);
+
+        /**
+         * Helper function to hide any given modal element.
+         * @param {HTMLElement} modalElement - The modal element to hide.
+         */
+        function hideModal(modalElement) {
+            modalElement.classList.add('hidden');
+        }
+
+        // Firebase Functions Integration
+
+        /**
+         * Initializes Firebase app, Firestore, and Auth. Sets up an auth state listener.
+         */
+        async function initializeFirebase() {
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Listen for authentication state changes
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        currentUser = user;
+                        userId = user.uid; // Set the current user's ID
+                        userIdDisplay.textContent = `Your User ID: ${userId.substring(0, 8)}...`;
+                        isAuthReady = true; // Mark auth as ready
+                        connectionStatusSpan.textContent = "Connected to Firebase!";
+                        showLobby(); // Show the lobby once authenticated
+                    } else {
+                        // If no user, try to sign in anonymously
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token !== '') {
+                             // Use signInWithCustomToken if provided by the environment
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                             // Fallback to anonymous sign-in if no custom token
+                            await signInAnonymously(auth);
+                            userId = auth.currentUser?.uid || crypto.randomUUID(); // Use auth UID or a random UUID
+                            userIdDisplay.textContent = `Your User ID: ${userId.substring(0, 8)}... (Anonymous)`;
+                            isAuthReady = true;
+                            connectionStatusSpan.textContent = "Connected to Firebase (Anonymous)!";
+                            showLobby();
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+                connectionStatusSpan.textContent = "Firebase Connection Failed!";
+                showMessage("Failed to connect to game services. Please try again later.", true);
+            }
+        }
+
+        /**
+         * Displays the game lobby modal.
+         */
+        function showLobby() {
+            hideModal(gameOverModal);
+            hideModal(roundOverModal);
+            hideMessage();
+            lobbyModal.classList.remove('hidden');
+            // Display the current room ID if already in a room
+            if (gameRoomId) {
+                currentRoomIdSpan.textContent = gameRoomId;
+            } else {
+                currentRoomIdSpan.textContent = 'N/A';
+            }
+        }
+
+        // Event listeners for lobby buttons
+        createRoomBtn.addEventListener('click', createGameRoom);
+        joinRoomBtn.addEventListener('click', () => joinGameRoom(joinRoomInput.value));
+
+        /**
+         * Creates a new game room in Firestore.
+         */
+        async function createGameRoom() {
+            if (!isAuthReady) {
+                showMessage("Please wait for connection to establish...", true);
+                return;
+            }
+
+            try {
+                // Optional: Clean up any old "waiting" rooms the user might have created
+                const userRoomsQuery = query(collection(db, `artifacts/${appId}/public/data/gameRooms`),
+                    where("player1Id", "==", userId),
+                    where("status", "==", "waiting"));
+                const existingRooms = await getDocs(userRoomsQuery);
+                existingRooms.forEach(async (doc) => {
+                    await deleteDoc(doc.ref);
+                    console.log("Cleaned up old room:", doc.id);
+                });
+
+                // Add a new document to the 'gameRooms' collection
+                const newRoomRef = await addDoc(collection(db, `artifacts/${appId}/public/data/gameRooms`), {
+                    player1Id: userId,
+                    player2Id: null, // Player 2 is initially null
+                    status: 'waiting', // Room is waiting for a second player
+                    round: 1,
+                    player1Score: 0,
+                    player2Score: 0,
+                    createdAt: Date.now(),
+                    playerStates: {} // To store individual player positions/health
+                });
+                gameRoomId = newRoomRef.id; // Store the new room ID
+                currentRoomIdSpan.textContent = gameRoomId;
+                connectionStatusSpan.textContent = `Created room: ${gameRoomId}. Waiting for player 2...`;
+                console.log("Created game room:", gameRoomId);
+                
+                // Start listening to updates for this newly created room
+                listenToGameRoom(gameRoomId);
+                hideModal(lobbyModal); // Hide lobby modal
+                showMessage(`Created room: ${gameRoomId}. Share this ID to invite a friend!`, false);
+
+            } catch (error) {
+                console.error("Error creating game room:", error);
+                showMessage("Failed to create game room. Try again.", true);
+            }
+        }
+
+        /**
+         * Joins an existing game room using its ID.
+         * @param {string} roomId - The ID of the room to join.
+         */
+        async function joinGameRoom(roomId) {
+            if (!isAuthReady || !roomId) {
+                showMessage("Please wait for connection to establish or enter a Room ID.", true);
+                return;
+            }
+
+            try {
+                const roomRef = doc(db, `artifacts/${appId}/public/data/gameRooms`, roomId);
+                const roomDoc = await getDoc(roomRef);
+
+                if (!roomDoc.exists()) {
+                    showMessage("Room not found.", true);
+                    return;
+                }
+
+                const roomData = roomDoc.data();
+
+                if (roomData.player1Id === userId) {
+                    // User is trying to join their own room, simply re-listen
+                    gameRoomId = roomId;
+                    connectionStatusSpan.textContent = `Rejoined your room: ${gameRoomId}. Waiting for player 2...`;
+                    console.log("Rejoined own game room:", gameRoomId);
+                    listenToGameRoom(gameRoomId);
+                    hideModal(lobbyModal);
+                    showMessage(`Rejoined your room: ${gameRoomId}. Still waiting for player 2...`, false);
+                } else if (roomData.status === 'waiting' && roomData.player2Id === null) {
+                    // Join as Player 2 if room is waiting and Player 2 slot is empty
+                    await updateDoc(roomRef, {
+                        player2Id: userId,
+                        status: 'playing' // Change room status to 'playing'
+                    });
+                    gameRoomId = roomId;
+                    connectionStatusSpan.textContent = `Joined room: ${gameRoomId}. Game starting!`;
+                    console.log("Joined game room:", gameRoomId);
+                    listenToGameRoom(gameRoomId);
+                    hideModal(lobbyModal);
+                } else {
+                    showMessage("Room is full or game has already started.", true);
+                }
+            } catch (error) {
+                console.error("Error joining game room:", error);
+                showMessage("Failed to join room. Check ID and try again.", true);
+            }
+        }
+
+        /**
+         * Sets up a real-time listener for changes in the specified game room document in Firestore.
+         * @param {string} roomId - The ID of the game room to listen to.
+         */
+        function listenToGameRoom(roomId) {
+            const roomRef = doc(db, `artifacts/${appId}/public/data/gameRooms`, roomId);
+            onSnapshot(roomRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    console.log("Room data updated:", data);
+
+                    // Update local game state with data from Firestore
+                    gameState.player1Id = data.player1Id;
+                    gameState.player2Id = data.player2Id;
+                    gameState.round = data.round;
+                    gameState.player1Score = data.player1Score;
+                    gameState.player2Score = data.player2Score;
+                    gameState.status = data.status;
+                    gameState.roundWinner = data.roundWinner; // Sync round winner
+
+                    // Update UI scores and round display
+                    player1ScoreSpan.textContent = `P1: ${gameState.player1Score}`;
+                    player2ScoreSpan.textContent = `P2: ${gameState.player2Score}`;
+                    roundNumberSpan.textContent = `Round ${gameState.round}`;
+
+                    // Initialize player objects if they haven't been created yet
+                    if (!localPlayer && userId && data.player1Id && data.player2Id) {
+                        const p1StartX = canvas.width * 0.25;
+                        const p2StartX = canvas.width * 0.75;
+                        const startY = canvas.height / 2;
+
+                        if (data.player1Id === userId) {
+                            localPlayer = new Player(data.player1Id, p1StartX, startY, '#63b3ed', true); // Blue for local P1
+                            remotePlayer = new Player(data.player2Id, p2StartX, startY, '#e53e3e', false); // Red for remote P2
+                        } else if (data.player2Id === userId) {
+                            localPlayer = new Player(data.player2Id, p2StartX, startY, '#e53e3e', true); // Red for local P2
+                            remotePlayer = new Player(data.player1Id, p1StartX, startY, '#63b3ed', false); // Blue for remote P1
+                        }
+                        players[localPlayer.id] = localPlayer;
+                        players[remotePlayer.id] = remotePlayer;
+                    }
+
+                    // Handle game state transitions
+                    if (gameState.status === 'playing' && localPlayer && remotePlayer && animationFrameId === undefined) {
+                        hideModal(lobbyModal);
+                        hideModal(roundOverModal); 
+                        hideMessage();
+                        console.log("Starting game loop...");
+                        // Start the game loop if not already running
+                        animationFrameId = requestAnimationFrame(gameLoop);
+                    } else if (gameState.status === 'round_over' && !roundOverModal.classList.contains('hidden')) {
+                         // If the remote player won the round, update message
+                         if (data.roundWinner && data.roundWinner !== userId && gameState.roundWinner === data.roundWinner) {
+                             roundOverMessage.textContent = `${data.roundWinner.substring(0, 8)}... Wins Round ${data.round}!`;
+                             roundOverModal.classList.remove('hidden');
+                         }
+                    } else if (gameState.status === 'game_over' && !gameOverModal.classList.contains('hidden')) {
+                        // If the remote player won the game, update message
+                        if (data.player1Score >=3 || data.player2Score >=3) {
+                            let winningPlayerId = data.player1Score >=3 ? data.player1Id : data.player2Id;
+                            gameOverMessage.textContent = `${winningPlayerId.substring(0, 8)}... Wins the Match!`;
+                            gameOverModal.classList.remove('hidden');
+                        }
+                    } else if (gameState.status === 'waiting' && data.player1Id === userId && data.player2Id === null) {
+                        // Still waiting in lobby for player 2
+                        showMessage(`Created room: ${roomId}. Waiting for player 2...`, false);
+                    }
+
+
+                    // Update remote player's state from Firestore
+                    if (data.playerStates && remotePlayer) {
+                        const remotePlayerState = data.playerStates[remotePlayer.id];
+                        if (remotePlayerState) {
+                            remotePlayer.x = remotePlayerState.x;
+                            remotePlayer.y = remotePlayerState.y;
+                            remotePlayer.health = remotePlayerState.health;
+                            remotePlayer.attacking = remotePlayerState.attacking;
+                            remotePlayer.blocking = remotePlayerState.blocking;
+                            remotePlayer.swordAngle = remotePlayerState.swordAngle;
+                        }
+                    }
+
+                } else {
+                    // Room does not exist or was deleted (e.g., by the other player)
+                    console.log("Game room does not exist or was deleted.");
+                    gameRoomId = null;
+                    localPlayer = null;
+                    remotePlayer = null;
+                    players = {};
+                    cancelAnimationFrame(animationFrameId); // Stop game loop if running
+                    animationFrameId = undefined; // Reset animation frame ID
+                    resetGame(); // Reset game state and return to lobby
+                    showMessage("Game room ended or disconnected.", true);
+                }
+            }, (error) => {
+                console.error("Error listening to game room:", error);
+                showMessage("Disconnected from game. Please try again.", true);
+            });
+        }
+
+        /**
+         * Updates a specific player's state (position, health, attack status) in Firestore.
+         * @param {Player} player - The player object whose state needs to be updated.
+         */
+        async function updatePlayerStateInFirestore(player) {
+            if (!gameRoomId || !player) return;
+            const roomRef = doc(db, `artifacts/${appId}/public/data/gameRooms`, gameRoomId);
+            try {
+                // Use field dot notation to update a nested object directly
+                await updateDoc(roomRef, {
+                    [`playerStates.${player.id}`]: {
+                        x: player.x,
+                        y: player.y,
+                        health: player.health,
+                        attacking: player.attacking,
+                        blocking: player.blocking,
+                        swordAngle: player.swordAngle,
+                        timestamp: Date.now() // Add a timestamp for potential latency checks
+                    }
+                });
+            } catch (error) {
+                console.error("Error updating player state:", error);
+            }
+        }
+
+        /**
+         * Updates the overall game state (round, scores, status) in Firestore.
+         */
+        async function updateGameStateInFirestore() {
+            if (!gameRoomId) return;
+            const roomRef = doc(db, `artifacts/${appId}/public/data/gameRooms`, gameRoomId);
+            try {
+                await updateDoc(roomRef, {
+                    round: gameState.round,
+                    player1Score: gameState.player1Score,
+                    player2Score: gameState.player2Score,
+                    status: gameState.status,
+                    roundWinner: gameState.roundWinner, 
+                    lastUpdate: Date.now()
+                });
+            } catch (error) {
+                console.error("Error updating game state:", error);
+            }
+        }
+
+        // Start the game initialization when the window loads
+        window.onload = function () {
+            initGame(); // Set up canvas and event listeners
+            initializeFirebase(); // Connect to Firebase and handle authentication
+        };
+    </script>
+</body>
+</html>
