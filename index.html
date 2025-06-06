@@ -211,7 +211,7 @@
         // Modal Elements
         const lobbyModal = document.getElementById('lobbyModal');
         const createRoomBtn = document.getElementById('createRoomBtn');
-        const joinRoomInput = document = document.getElementById('joinRoomInput');
+        const joinRoomInput = document.getElementById('joinRoomInput'); // Corrected assignment
         const joinRoomBtn = document.getElementById('joinRoomBtn');
         const currentRoomIdSpan = document.getElementById('currentRoomId');
 
@@ -618,9 +618,6 @@
 
             // After processing mouse clicks, reset them if they were for a single frame (like a tap)
             if (mouse.leftDown && !touchActive) mouse.leftDown = false; // Reset if not a continuous touch
-            // Fix: 'e' is not defined here. This line is causing a reference error.
-            // It should only be active during touch events where 'e' is available.
-            // For mouse, the mouse.rightDown is handled by its own mouseup event.
             // Removed: if (mouse.rightDown && !touchActive && e.touches.length < 2) mouse.rightDown = false; 
 
             // Check for collision if local player is currently attacking
@@ -835,11 +832,11 @@
                         showLobby(); // Show the lobby once authenticated
                     } else {
                         // If no user, try to sign in anonymously
+                        // Note: __initial_auth_token is provided by the Canvas environment.
+                        // When running live, this will likely be undefined, so signInAnonymously will be used.
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token !== '') {
-                             // Use signInWithCustomToken if provided by the environment
                             await signInWithCustomToken(auth, __initial_auth_token);
                         } else {
-                             // Fallback to anonymous sign-in if no custom token
                             await signInAnonymously(auth);
                             userId = auth.currentUser?.uid || crypto.randomUUID(); // Use auth UID or a random UUID
                             userIdDisplay.textContent = `Your User ID: ${userId.substring(0, 8)}... (Anonymous)`;
