@@ -173,26 +173,28 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, query, where, addDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // Import getAnalytics if you plan to use it (optional)
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
 
-        // Global variables for Firebase config and app ID, provided by the Canvas environment
- const firebaseConfig = {
-  apiKey: "AIzaSyAViW3Z4wD7KEXZL5Hp95-fHmKw5Lgb2Lc",
-  authDomain: "brawl-game-67b0b.firebaseapp.com",
-  projectId: "brawl-game-67b0b",
-  storageBucket: "brawl-game-67b0b.firebasestorage.app",
-  messagingSenderId: "989739157377",
-  appId: "1:989739157377:web:75c9e8debe1311b1444a80",
-  measurementId: "G-WMFLVF9QPE"
-};
+        // Your Firebase project configuration (replace with your actual values)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAViW3Z4wD7KEXZL5Hp95-fHmKw5Lgb2Lc",
+            authDomain: "brawl-game-67b0b.firebaseapp.com",
+            projectId: "brawl-game-67b0b",
+            storageBucket: "brawl-game-67b0b.firebasestorage.app",
+            messagingSenderId: "989739157377",
+            appId: "1:989739157377:web:75c9e8debe1311b1444a80",
+            measurementId: "G-WMFLVF9QPE"
+        };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+        // The appId used in your Firestore paths should match the appId from your firebaseConfig
+        const appId = firebaseConfig.appId; 
 
         // Firebase instances
         let app;
         let db;
         let auth;
+        let analytics; // Declare analytics here
         let currentUser;
         let userId; // Stores the authenticated user's ID or a random ID if anonymous
         let isAuthReady = false; // Flag to indicate Firebase auth is ready
@@ -209,7 +211,7 @@ const analytics = getAnalytics(app);
         // Modal Elements
         const lobbyModal = document.getElementById('lobbyModal');
         const createRoomBtn = document.getElementById('createRoomBtn');
-        const joinRoomInput = document.getElementById('joinRoomInput');
+        const joinRoomInput = document = document.getElementById('joinRoomInput');
         const joinRoomBtn = document.getElementById('joinRoomBtn');
         const currentRoomIdSpan = document.getElementById('currentRoomId');
 
@@ -616,7 +618,10 @@ const analytics = getAnalytics(app);
 
             // After processing mouse clicks, reset them if they were for a single frame (like a tap)
             if (mouse.leftDown && !touchActive) mouse.leftDown = false; // Reset if not a continuous touch
-            if (mouse.rightDown && !touchActive && e.touches.length < 2) mouse.rightDown = false; // Reset if not continuous touch or two fingers
+            // Fix: 'e' is not defined here. This line is causing a reference error.
+            // It should only be active during touch events where 'e' is available.
+            // For mouse, the mouse.rightDown is handled by its own mouseup event.
+            // Removed: if (mouse.rightDown && !touchActive && e.touches.length < 2) mouse.rightDown = false; 
 
             // Check for collision if local player is currently attacking
             if (localPlayer.attacking) {
@@ -812,7 +817,10 @@ const analytics = getAnalytics(app);
          */
         async function initializeFirebase() {
             try {
+                // Initialize app and analytics
                 app = initializeApp(firebaseConfig);
+                analytics = getAnalytics(app); // Assign to the global 'analytics' variable
+                
                 db = getFirestore(app);
                 auth = getAuth(app);
 
